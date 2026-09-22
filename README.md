@@ -4,6 +4,17 @@ An end-to-end conversational AI agent for an automotive OEM that handles custome
 
 The application combines **React, Node.js, Gemini function calling, and Zoho CRM** to provide a conversational interface that can dynamically identify customer intent and execute CRM operations through controlled backend tools.
 
+## Video For the Application
+
+[🎥 Watch Application Demo Video](https://drive.google.com/file/d/1X2DZQTkFCtut0b_k5yXG_tcafrLIF5tE/view?usp=sharing)
+
+## Images For the Application Flow
+
+[🖼️ View Application Flow Images](https://drive.google.com/drive/folders/1jp0-n6a5_sbTWs2R3yvo2hZaFcKHpeoH?usp=sharing)
+
+
+
+
 ---
 
 ## 1. Overview
