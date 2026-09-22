@@ -143,7 +143,7 @@ export async function executeTool(name: string, args: any) {
         };
     }
 
-    // Never send undefined/null directly to Gemini
+    // Never send undefined/null directly 
     if (result === undefined || result === null) {
       return {
         success: false,

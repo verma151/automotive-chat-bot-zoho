@@ -2,7 +2,9 @@
 
 An end-to-end conversational AI agent for an automotive OEM that handles customer interactions across the complete vehicle lifecycle — from new lead generation to post-purchase service.
 
-The application combines **React, Node.js, Gemini function calling, and Zoho CRM** to provide a conversational interface that can dynamically identify customer intent and execute CRM operations through controlled backend tools.
+The application combines **React, Node.js, Groq, LLM tool/function calling, and Zoho CRM** to provide a conversational interface that can dynamically identify customer intent and execute CRM operations through controlled backend tools.
+
+The AI layer uses the **Groq API with `openai/gpt-oss-120b`** through the OpenAI-compatible chat completions interface.
 
 ## Video For the Application
 
@@ -12,12 +14,9 @@ The application combines **React, Node.js, Gemini function calling, and Zoho CRM
 
 [🖼️ View Application Flow Images](https://drive.google.com/drive/folders/1jp0-n6a5_sbTWs2R3yvo2hZaFcKHpeoH?usp=sharing)
 
-
-
-
 ---
 
-## 1. Overview
+# 1. Overview
 
 The agent supports four primary automotive customer journeys:
 
@@ -28,7 +27,7 @@ The agent supports four primary automotive customer journeys:
 | 🚘 Booked Vehicle   | "What's the delivery status of my Scorpio-N?" | Retrieve booking information    |
 | 🔧 Post-Purchase    | "My AC isn't cooling. I need service."        | Create service Case in Zoho CRM |
 
-The agent uses **LLM tool/function calling** to determine which backend operation should be executed.
+The agent uses **LLM tool/function calling through Groq** to determine which backend operation should be executed.
 
 The LLM never directly accesses Zoho CRM credentials. All CRM operations are executed securely by the Node.js backend.
 
@@ -36,7 +35,7 @@ The LLM never directly accesses Zoho CRM credentials. All CRM operations are exe
 
 # 2. Architecture
 
-
+```text
                          ┌─────────────────────┐
                          │      React UI       │
                          │    Chat Interface   │
@@ -51,24 +50,24 @@ The LLM never directly accesses Zoho CRM credentials. All CRM operations are exe
                                     │
                                     ▼
                          ┌─────────────────────┐
-                         │    Gemini LLM       │
-                         │ Function Calling    │
+                         │      Groq API       │
+                         │  LLM + Tool Calling │
+                         │ openai/gpt-oss-120b │
                          └──────────┬──────────┘
                                     │
-                    ┌───────────────┼────────────────┐
-                    │               │                │
-                    ▼               ▼                ▼
-             get_vehicle_info   create_lead    get_deal_status
-                    │               │                │
-                    │               │                │
-                    └───────────────┼────────────────┘
-                                    │
+                                    │ Tool Call
                                     ▼
                          ┌─────────────────────┐
-                         │    Tool Executor    │
+                         │    Tool Executor   │
                          │  Backend-controlled │
                          └──────────┬──────────┘
                                     │
+                  ┌─────────────────┼─────────────────┐
+                  │                 │                 │
+                  ▼                 ▼                 ▼
+           Vehicle Info       CRM Operations    Booking/Service
+                  │                 │                 │
+                  └─────────────────┼─────────────────┘
                                     ▼
                          ┌─────────────────────┐
                          │     Zoho CRM        │
@@ -87,9 +86,9 @@ POST /api/chat
   ↓
 Node.js / Express
   ↓
-Gemini
+Groq API
   ↓
-Function / Tool Call
+LLM Tool / Function Call
   ↓
 Backend Tool Executor
   ↓
@@ -97,12 +96,14 @@ Zoho CRM REST API
   ↓
 Tool Result
   ↓
-Gemini
+Groq API
   ↓
 Natural Language Response
   ↓
 React UI
 ```
+
+The backend controls the complete tool execution lifecycle. Groq is responsible for understanding the user's request, selecting an available tool, and generating the final natural-language response based on the tool result.
 
 ---
 
@@ -125,9 +126,10 @@ React UI
 
 ### AI
 
-* Google Gemini
-* Gemini function/tool calling
-* `@google/genai`
+* Groq API
+* LLM tool/function calling
+* `groq-sdk`
+* `openai/gpt-oss-120b`
 
 ### CRM
 
@@ -192,7 +194,9 @@ React UI
 
 The LLM does not directly interact with Zoho CRM.
 
-Instead, it can request predefined backend tools.
+Instead, Groq can request predefined backend tools using structured tool/function calling.
+
+The backend validates and executes the requested operation.
 
 ## `get_vehicle_info`
 
@@ -454,7 +458,8 @@ Example:
 ```env
 PORT=5000
 
-GEMINI_API_KEY=your_gemini_api_key
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=openai/gpt-oss-120b
 
 ZOHO_CLIENT_ID=your_client_id
 ZOHO_CLIENT_SECRET=your_client_secret
@@ -471,13 +476,13 @@ Never commit `.env` to Git.
 The following credentials must remain backend-only:
 
 ```text
-GEMINI_API_KEY
+GROQ_API_KEY
 ZOHO_CLIENT_ID
 ZOHO_CLIENT_SECRET
 ZOHO_REFRESH_TOKEN
 ```
 
-The React frontend must never receive Zoho OAuth credentials.
+The React frontend must never receive Zoho OAuth credentials or the Groq API key.
 
 ---
 
@@ -606,9 +611,27 @@ Vehicle
 
 The agent subsequently creates the Lead in Zoho CRM.
 
+### Expected Flow
+
+```text
+Vehicle inquiry
+      ↓
+get_vehicle_info
+      ↓
+Vehicle information
+      ↓
+Test drive pitch
+      ↓
+Collect customer details
+      ↓
+create_lead
+      ↓
+Zoho Lead created
+```
+
 ---
 
-# Scenario 2 — Ongoing Pipeline
+## Scenario 2 — Ongoing Pipeline
 
 Request:
 
@@ -648,7 +671,7 @@ Test Drive Scheduled
 
 ---
 
-# Scenario 3 — Booked Vehicle
+## Scenario 3 — Booked Vehicle
 
 Request:
 
@@ -675,7 +698,7 @@ Status: In Transit
 
 ---
 
-# Scenario 4 — Post-Purchase Service
+## Scenario 4 — Post-Purchase Service
 
 Request:
 
@@ -705,7 +728,7 @@ React
   ↓
 API validation
   ↓
-Gemini
+Groq API
   ↓
 Tool execution
   ↓
@@ -738,27 +761,29 @@ Typical errors include:
 
 The backend logs the Zoho response while returning a safe error message to the client.
 
+Tool execution failures are also returned to the LLM as structured tool results so that the agent can provide a controlled response rather than exposing internal errors or credentials.
+
 ---
 
 # 13. Security Considerations
 
 ### Backend-only credentials
 
-Zoho credentials and Gemini API keys are stored exclusively in the backend.
+Zoho credentials and the Groq API key are stored exclusively in the backend.
 
 ### Controlled tool execution
 
 The LLM can only request tools explicitly defined by the application.
 
 ```text
-LLM
- ↓
+Groq LLM
+   ↓
 Tool definition
- ↓
+   ↓
 Backend validation
- ↓
+   ↓
 Tool executor
- ↓
+   ↓
 Zoho
 ```
 
@@ -787,7 +812,7 @@ Example:
 }
 ```
 
-The session allows the backend to maintain conversational context across multiple messages.
+The session allows multiple messages to belong to the same conversation and enables contextual intent handling.
 
 For this technical assessment, conversation state is maintained in memory.
 
@@ -832,7 +857,7 @@ Potential improvements:
 
 * Redis-based conversation state
 * distributed rate limiting
-* streaming LLM responses
+* streaming LLM responses from Groq
 * background jobs for CRM synchronization
 * webhook-based CRM updates
 * structured observability
@@ -848,6 +873,24 @@ Potential improvements:
 ## Why React + Node.js?
 
 React provides a responsive conversational UI while Node.js provides a lightweight backend suitable for integrating AI APIs and Zoho's REST APIs.
+
+## Why Groq?
+
+Groq provides a fast inference API with an OpenAI-compatible chat completion interface and supports structured tool/function calling.
+
+The application uses:
+
+```text
+Groq API
+    ↓
+openai/gpt-oss-120b
+    ↓
+Tool / Function Calling
+    ↓
+Backend Tool Executor
+```
+
+This keeps the AI layer separated from the CRM integration layer.
 
 ## Why backend tool execution?
 
@@ -933,7 +976,8 @@ This repository contains:
 
 * [x] React conversational UI
 * [x] Node.js backend
-* [x] Gemini function calling
+* [x] Groq LLM integration
+* [x] LLM tool/function calling
 * [x] Zoho CRM OAuth integration
 * [x] Lead creation
 * [x] Deal lookup
@@ -953,7 +997,7 @@ Given additional development time, the following improvements could be implement
 
 1. **Streaming responses**
 
-   * Stream Gemini output to the React UI.
+   * Stream Groq LLM output to the React UI.
 
 2. **Persistent conversation state**
 
@@ -1012,7 +1056,8 @@ Use `.env.example` to document required configuration.
 Built as an AI Solutions Engineer / AI Integration Specialist technical assessment demonstrating:
 
 * Conversational AI
-* LLM tool calling
+* Groq LLM integration
+* LLM tool/function calling
 * CRM integration
 * Backend API design
 * Automotive customer lifecycle workflows
