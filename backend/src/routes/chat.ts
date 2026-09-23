@@ -2,9 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 
 import { runAgent } from "../ai/agent.js";
-import {
-  getConversation,
-} from "../state/conversation.js";
+import { getConversation } from "../state/conversation.js";
 
 const router = Router();
 
@@ -15,49 +13,27 @@ const chatSchema = z.object({
 
 router.post("/", async (req, res) => {
   try {
-    const {
-      sessionId,
-      message,
-    } = chatSchema.parse(req.body);
+    const { sessionId, message } = chatSchema.parse(req.body);
 
-    const conversation =
-      getConversation(sessionId);
+    const conversation = getConversation(sessionId);
 
-    const response =
-      await runAgent(
-        message,
-        conversation.history
-      );
+    const { response, stage } = await runAgent(message, conversation.history);
 
-    conversation.history.push({
-      role: "user",
-      parts: [
-        {
-          text: message,
-        },
-      ],
-    });
+    conversation.history.push({ role: "user", parts: [{ text: message }] });
+    conversation.history.push({ role: "model", parts: [{ text: response }] });
 
-    conversation.history.push({
-      role: "model",
-      parts: [
-        {
-          text: response,
-        },
-      ],
-    });
+    if (stage) conversation.stage = stage;
 
     res.json({
       success: true,
       response,
+      stage: conversation.stage ?? null,
     });
   } catch (error) {
     console.error(error);
-
     res.status(500).json({
       success: false,
-      error:
-        "Something went wrong while processing your request.",
+      error: "Something went wrong while processing your request.",
     });
   }
 });

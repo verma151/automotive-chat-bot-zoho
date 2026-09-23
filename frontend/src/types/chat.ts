@@ -15,4 +15,5 @@ export interface ChatRequest {
 export interface ChatResponse {
   success: boolean;
   response: string;
+  stage?: string | null;
 }
