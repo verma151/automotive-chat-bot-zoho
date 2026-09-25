@@ -7,41 +7,61 @@ export interface CreateLeadInput {
   email?: string;
   city?: string;
   interestedVehicle: string;
+  description?: string;
 }
 
-export async function createLead(args: any) {
-  const payload = {
-    data: [
-      {
-        First_Name: args.firstName,
-        Last_Name: args.lastName,
-        Phone: args.phone,
-        Email: args.email,
-        City: args.city,
-        Vehicle_Model: args.interestedVehicle
-      }
-    ]
+export async function createLead(args: CreateLeadInput) {
+  const leadData: Record<string, any> = {
+    First_Name: args.firstName,
+    Last_Name: args.lastName,
+    Phone: args.phone,
+    Vehicle_Model: args.interestedVehicle,
   };
+
+  if (args.email) {
+    leadData.Email = args.email;
+  }
+
+  if (args.city) {
+    leadData.City = args.city;
+  }
+
+  if (args.description) {
+    leadData.Description = args.description;
+  }
+
+  const payload = {
+    data: [leadData],
+  };
+
+  console.log(
+    "Creating Zoho Lead:",
+    JSON.stringify(payload, null, 2)
+  );
 
   const response = await zohoRequest("/crm/v8/Leads", {
     method: "POST",
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 
+  console.log(
+    "Zoho Create Lead Response:",
+    JSON.stringify(response, null, 2)
+  );
+
   const record = response?.data?.[0];
-  // console.log("response create leads",response)
 
   if (!record) {
     return {
       created: false,
-      message: "Lead could not be created in Zoho CRM."
+      message: "Lead could not be created in Zoho CRM.",
     };
   }
 
   return {
     created: true,
     leadId: record.details?.id || record.id,
-    message: "Lead created successfully."
+    message: "Lead created successfully.",
   };
 }
 
