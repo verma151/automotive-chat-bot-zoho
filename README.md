@@ -10,7 +10,6 @@ The AI layer uses the **Groq API with `openai/gpt-oss-120b`** through the OpenAI
 
 [🎥 Watch Application Demo Video](https://www.loom.com/share/dc87a81e2c374739b57708a8e8f4095d?t=209)
 
-[🎥 Watch Application Demo Video](https://drive.google.com/file/d/1X2DZQTkFCtut0b_k5yXG_tcafrLIF5tE/view?usp=sharing)
 
 ## Images For the Application Flow
 
